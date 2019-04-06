@@ -108,6 +108,13 @@ class Lexer():
                 return Token(LPAREN, '(')
 
             if self.current_char == ')':
+                if self.type == REVERSE:
+                    roman = self.roman()
+                    self.advance()
+                    self.advance()
+                    self.advance()
+                    self.advance()
+                    return Token(RIM, roman)
                 self.advance()
                 return Token(RPAREN, ')')
 
