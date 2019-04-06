@@ -3,6 +3,7 @@ INTEGER, PLUS, MINUS, MUL, DIV, EOF, RPAREN, LPAREN, LESS, GREATER, EQUAL, NOT_E
     'VARIABLE', 'ASSIGNMENT', 'RIM'
 )
 PREFIX, INFIX, POSTFIX = ('PREFIX', 'INFIX', 'POSTFIX')
+NORMAL, REVERSE = ('NORMAL', 'REVERSE')
 vars = {}
 
 class Token():
@@ -14,28 +15,43 @@ class Token():
         return "<{} {}>".format(self.type, self.value)
 
 class Lexer():
-    def __init__(self, text):
+    def __init__(self, text, type):
         self.text = text
-        self.pos = 0
+        self.type = type
+        if type == NORMAL:
+            self.pos = 0
+        else:
+            self.pos = len(self.text) - 1
         self.current_char = self.text[self.pos]
 
     def error(self):
         raise Exception('Neocekivani karakter {} '.format(self.current_char))
 
     def advance(self):
-        self.pos += 1
+        if self.type == NORMAL:
+            self.pos += 1
 
-        if self.pos > len(self.text) -1 :
-            self.current_char = None
+            if self.pos > len(self.text) -1 :
+                self.current_char = None
+            else:
+                self.current_char = self.text[self.pos]
         else:
-            self.current_char = self.text[self.pos]
+            self.pos -= 1
+
+            if self.pos < 0:
+                self.current_char = None
+            else:
+                self.current_char = self.text[self.pos]
 
     def integer(self):
         number = ""
         while(self.current_char is not None and self.current_char.isdigit()):
             number += self.current_char
             self.advance()
-        return int(number)
+        if self.type == NORMAL:
+            return int(number)
+        else:
+            return int(number[::-1])
 
     def skip_whitespace(self):
         while(self.current_char is not None and self.current_char.isspace()):
@@ -46,18 +62,22 @@ class Lexer():
         while self.current_char is not None and (self.current_char.isalpha() or self.current_char.isdigit() or self.current_char == '-' or self.current_char == '_'):
             variable += self.current_char
             self.advance()
-        return variable
+        if self.type == NORMAL:
+            return variable
+        else:
+            return variable[::-1]
 
     def roman(self):
         roman = ""
-        if self.current_char != '(':
-            self.error()
         self.advance()
         while self.current_char is not None and self.current_char.isalpha():
             roman += self.current_char
             self.advance()
         self.advance()
-        return roman
+        if self.type == NORMAL:
+            return roman
+        else:
+            return roman[::-1]
 
     def get_next_token(self):
         while self.current_char is not None:
@@ -124,7 +144,8 @@ class Lexer():
             if self.current_char.isalpha():
                 var = self.variable()
                 if var == 'RIM':
-                    return Token(RIM, self.roman())
+                    if self.current_char == '(':
+                        return Token(RIM, self.roman())
                 return Token(VARIABLE, var)
 
             self.error()
@@ -295,7 +316,47 @@ class Interpreter():
         else:
             return left
 
+    def postfix_to_infix(self):
+        stack = []
+        token = self.current_token
+        while token.type != EOF:
+            if token.type == VARIABLE:
+                stack.append(token.value)
+            elif token.type == INTEGER:
+                stack.append(str(token.value))
+            elif token.type == RIM:
+                stack.append('RIM(' + token.value + ')')
+            else:
+                op1 = stack.pop()
+                op2 = stack.pop()
+                if token.type in (MUL, DIV, PLUS, MINUS, ASSIGNMENT):
+                    stack.append("( " + op2 + " " + token.value + " " + op1 + " )")
+                else:
+                    stack.append(op2 + " " + token.value + " " + op1)
+            self.eat(token.type)
+            token = self.current_token
+        return stack.pop()
 
+    def prefix_to_infix(self):
+        stack = []
+        token = self.current_token
+        while token.type != EOF:
+            if token.type == VARIABLE:
+                stack.append(token.value)
+            elif token.type == INTEGER:
+                stack.append(str(token.value))
+            elif token.type == RIM:
+                stack.append('RIM(' + token.value + ')')
+            else:
+                op1 = stack.pop()
+                op2 = stack.pop()
+                if token.type in (MUL, DIV, PLUS, MINUS, ASSIGNMENT):
+                    stack.append("( " + op1 + " " + token.value + " " + op2 + " )")
+                else:
+                    stack.append(op1 + " " + token.value + " " + op2)
+            self.eat(token.type)
+            token = self.current_token
+        return stack.pop()
 
 def main():
     state = INFIX
@@ -323,10 +384,27 @@ def main():
             state = POSTFIX
             continue
 
-        lexer = Lexer(text)
-        interpreter = Interpreter(lexer)
-        result = interpreter.bool()
-        print(result)
+        if state == INFIX:
+            lexer = Lexer(text, NORMAL)
+            interpreter = Interpreter(lexer)
+            result = interpreter.bool()
+            print(result)
+        elif state == POSTFIX:
+            lexer = Lexer(text, NORMAL)
+            interpreter = Interpreter(lexer)
+            result = interpreter.postfix_to_infix()
+            lexer = Lexer(result, NORMAL)
+            interpreter = Interpreter(lexer)
+            result = interpreter.bool()
+            print(result)
+        else:
+            lexer = Lexer(text, REVERSE)
+            interpreter = Interpreter(lexer)
+            result = interpreter.prefix_to_infix()
+            lexer = Lexer(result, NORMAL)
+            interpreter = Interpreter(lexer)
+            result = interpreter.bool()
+            print(result)
 
 if __name__ == "__main__":
     main()
