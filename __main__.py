@@ -6,7 +6,8 @@ PREFIX, INFIX, POSTFIX = ('PREFIX', 'INFIX', 'POSTFIX')
 NORMAL, REVERSE = ('NORMAL', 'REVERSE')
 vars = {}
 
-class Token():
+
+class Token:
     def __init__(self, type, value):
         self.type = type
         self.value = value
@@ -14,7 +15,8 @@ class Token():
     def __repr__(self):
         return "<{} {}>".format(self.type, self.value)
 
-class Lexer():
+
+class Lexer:
     def __init__(self, text, type):
         self.text = text
         self.type = type
@@ -31,7 +33,7 @@ class Lexer():
         if self.type == NORMAL:
             self.pos += 1
 
-            if self.pos > len(self.text) -1 :
+            if self.pos > len(self.text) - 1:
                 self.current_char = None
             else:
                 self.current_char = self.text[self.pos]
@@ -45,7 +47,7 @@ class Lexer():
 
     def integer(self):
         number = ""
-        while(self.current_char is not None and self.current_char.isdigit()):
+        while self.current_char is not None and self.current_char.isdigit():
             number += self.current_char
             self.advance()
         if self.type == NORMAL:
@@ -54,12 +56,13 @@ class Lexer():
             return int(number[::-1])
 
     def skip_whitespace(self):
-        while(self.current_char is not None and self.current_char.isspace()):
+        while self.current_char is not None and self.current_char.isspace():
             self.advance()
 
     def variable(self):
         variable = ""
-        while self.current_char is not None and (self.current_char.isalpha() or self.current_char.isdigit() or self.current_char == '-' or self.current_char == '_'):
+        while self.current_char is not None and (self.current_char.isalpha() or self.current_char.isdigit() or
+                                                 self.current_char == '-' or self.current_char == '_'):
             variable += self.current_char
             self.advance()
         if self.type == NORMAL:
@@ -139,7 +142,6 @@ class Lexer():
                     return Token(EQUAL, '==')
                 else:
                     return Token(ASSIGNMENT, '=')
-                self.error()
 
             if self.current_char == '!':
                 self.advance()
@@ -159,7 +161,9 @@ class Lexer():
 
         return Token(EOF, None)
 
-class Interpreter():
+
+class Interpreter:
+
     def __init__(self, lexer):
         self.lexer = lexer
         self.current_token = self.lexer.get_next_token()
@@ -167,8 +171,8 @@ class Interpreter():
     def error(self):
         raise Exception('Greska u parsiranju')
 
-    def eat(self, type):
-        if self.current_token.type == type:
+    def eat(self, token_type):
+        if self.current_token.type == token_type:
             self.current_token = self.lexer.get_next_token()
         else:
             self.error()
@@ -190,14 +194,14 @@ class Interpreter():
             return 1000
         return -1
 
-    def roman_to_decimal(self, str):
+    def roman_to_decimal(self, string):
         res = 0
         i = 0
-        while (i < len(str)):
-            s1 = self.roman_value(str[i])
-            if (i + 1 < len(str)):
-                s2 = self.roman_value(str[i + 1])
-                if (s1 >= s2):
+        while i < len(string):
+            s1 = self.roman_value(string[i])
+            if i + 1 < len(string):
+                s2 = self.roman_value(string[i + 1])
+                if s1 >= s2:
                     res = res + s1
                     i = i + 1
                 else:
@@ -241,7 +245,6 @@ class Interpreter():
             self.eat(RPAREN)
             return result
 
-
     def term(self):
         result = self.factor()
 
@@ -280,43 +283,42 @@ class Interpreter():
         left = self.expr()
 
         if self.current_token.type in (LESS, GREATER, EQUAL, NOT_EQUAL, LESS_EQ, GREATER_EQ):
-            right = None
             while self.current_token.type in (LESS, GREATER, EQUAL, NOT_EQUAL, LESS_EQ, GREATER_EQ):
                 if self.current_token.type == LESS:
                     self.eat(LESS)
                     right = self.expr()
                     if not (left < right):
-                         result = False
+                        result = False
                     left = right
                 elif self.current_token.type == GREATER:
                     self.eat(GREATER)
                     right = self.expr()
                     if not (left > right):
-                         result = False
+                        result = False
                     left = right
                 elif self.current_token.type == EQUAL:
                     self.eat(EQUAL)
                     right = self.expr()
                     if not (left == right):
-                         result = False
+                        result = False
                     left = right
                 elif self.current_token.type == NOT_EQUAL:
                     self.eat(NOT_EQUAL)
                     right = self.expr()
                     if not (left != right):
-                         result = False
+                        result = False
                     left = right
                 elif self.current_token.type == LESS_EQ:
                     self.eat(LESS_EQ)
                     right = self.expr()
                     if not (left <= right):
-                         result = False
+                        result = False
                     left = right
                 elif self.current_token.type == GREATER_EQ:
                     self.eat(GREATER_EQ)
                     right = self.expr()
                     if not (left >= right):
-                         result = False
+                        result = False
                     left = right
 
             return result
@@ -365,6 +367,7 @@ class Interpreter():
             token = self.current_token
         return stack.pop()
 
+
 def main():
     state = INFIX
     while True:
@@ -412,6 +415,7 @@ def main():
             interpreter = Interpreter(lexer)
             result = interpreter.bool()
             print(result)
+
 
 if __name__ == "__main__":
     main()
